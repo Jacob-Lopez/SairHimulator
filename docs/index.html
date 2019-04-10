@@ -27,16 +27,16 @@
 </head>
 <body>
 <br />
-<h1 align="middle">Final Project Proposal</h1>
+<h1 align="middle">Realistic Hair Rendering Proposal</h1>
 <h2 align="middle">Jacob Lopez, Isaac Lee, Josh Pechner</h2>
-<h3>Problem Description</h3>
+<h3>Summary and Problem Description</h3>
     <div class="padded">
         <p>
             Our group aims to statically render realistic hair and (ideally) fur. The reflectance models are hard to simulate because hair and fur
             have complex light-scattering properties that make it difficult to emulate via ray-tracing. Hair/fur 
             also have many physical properties like thickness, length, bend radius, that make it hard to render when applying
-            physics(wind, motion). We are going to use the Marschner model for rendering hair and Lingqi's state of the
-            art fur reflectance model as our primary resources.
+            physics(wind, motion). We will use the Mitsuba Renderer to generate images. On top of that, we are going to use the Marschner model for rendering hair and Ling-Qi's state of the
+            art fur reflectance model as our primary resources for rendering realistic hair.
 
         </p>
     </div>
@@ -66,21 +66,27 @@
             more about a realistic appearance. Since we are only using one model for each render, we also can’t check for
             improved performance, since we have no baseline. Therefore, the quality of our images will be mostly subjective.
         </p>
+        <p>
+            With this project, we hope to address the transformation from basic hair rendering to a more complex and realistic form. 
+            Therefore, we will have a few questions to address. We will have to learn how the various hair lighting algorithms work and how we will translate them into a code structure on top of the Mitsuba Renderer.
+            Hopefully through this, we will be able to understand better the how light reflects off of hair, a dense group of objects, and figure out tricks to do so realistically and efficiently.
+            We are also curious in the differences between rendering hair and fur, and the challanges each of those will pose.
+        </p>
     </div>
 <h3>Schedule</h3>
     <div class="padded">
         <p>
-            Week 1: Familiarize ourselves with the Mitsuba render, find more models, resources, read through all of
+            Week 1: Familiarize ourselves with the Mitsuba renderer, find more models, resources, and read through all of
             the research papers on hair rendering
         </p>
         <p>
-            Week 2: work on implementing the Marschner model for rendering human hair
+            Week 2: Work on implementing the Marschner model for rendering human hair.
         </p>
         <p>
-            Week 3: Finish Marschner model and move on to fur rendering.
+            Week 3: Attempt to finish Marschner model and move on to fur rendering if possible.
         </p>
         <p>
-            Week 4: Finish fur rendering and (if there’s still more time) make a dynamic fur/hair renderer in OpenGL or WebGL
+            Week 4: Finish fur rendering (if we have started) and make a dynamic fur/hair renderer in OpenGL or WebGL (if there’s still more time).
         </p>
     </div>
 
@@ -90,24 +96,24 @@
         <h3 align="middle"> Papers/Online Resources: </h3>
         <br>
     <p align="middle">
-        http://www.eugenedeon.com/wp-content/uploads/2014/04/egsrhair.pdf
-        http://people.eecs.berkeley.edu/~lingqi/publications/paper_fur2.pdf
-        http://nickshen.me/184proj/final/
-        http://mitsuba-renderer.org/
+        http://www.eugenedeon.com/wp-content/uploads/2014/04/egsrhair.pdf<br />
+        http://people.eecs.berkeley.edu/~lingqi/publications/paper_fur2.pdf<br />
+        http://nickshen.me/184proj/final/<br />
+        http://mitsuba-renderer.org/<br />
     </p>
         <br>
     <h3 align="middle"> Computing Platforms: </h3>
         <br>
     <p align="middle">
-        Ubuntu 18.04
-        Windows 10
+        Ubuntu 18.04<br>
+        Windows 10<br />
         MacOs Mojave
     </p>
         <br>
     <h3 align="middle"> Software: </h3>
         <br>
     <p align="middle">
-        Mitsuba Renderer
+        Mitsuba Renderer<br />
         OpenGL (Maybe)
     </p>
 
