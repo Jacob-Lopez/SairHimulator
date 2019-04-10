@@ -1,0 +1,3 @@
+/Users/isaaclee/Desktop/cs184/SairHimulator/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/Users/isaaclee/Desktop/cs184/SairHimulator/cmake-build-debug/CMakeFiles/edit_cache.dir
+/Users/isaaclee/Desktop/cs184/SairHimulator/cmake-build-debug/CMakeFiles/SairHimulator.dir

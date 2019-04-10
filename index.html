@@ -29,8 +29,87 @@
 <br />
 <h1 align="middle">Final Project Proposal</h1>
 <h2 align="middle">Jacob Lopez, Isaac Lee, Josh Pechner</h2>
-<h3>Overview</h3>
+<h3>Problem Description</h3>
     <div class="padded">
+        <p>
+            Our group aims to statically render realistic hair and (ideally) fur. The reflectance models for hair and fur
+            have complex light-scattering properties that make it difficult to emulate via ray-tracing. Hair/fur have
+            also have many physical properties like thickness, length, bend radius, that make it when applying
+            physics(wind, motion). We are going to use the Marschner model for rendering hair and Lingqi's state of the
+            art fur reflectance model as our primary resources.
+
+        </p>
     </div>
+<h3>Goals and Deliverbles</h3>
+    <div class="padded">
+        <p>
+            For this project, we plan to deliver a series of images generated with the Mitsuba Renderer. We will first use
+            the renderer to generate some basic images of a head of hair, without any advanced lighting models. Then after
+            implementing the Marschner model, we will generate several images of much more realistic human hair to compare
+            to the basic renderings.
+
+            When working on this project, we will have to figure out how to render realistic renderings of hair. Therefore,
+            We have a couple stretch goals depending on the difficulty of the hair rendering and what issues we come across.
+            First, we would like to use the Linq-Qi model for fur to try to generate realistic fun renderings for animals.
+            In case this is also successful, we would also like to set up some sort of interactive real time rendering demo
+            using WebGL or OpenGL.
+
+            For the fur rendering deliverables, we will try to generate several images of one or two animals. This process
+            seems more difficult, so we may have multiple image sections showcasing our progress on the fur rendering. Then
+            we would like to set up some sort of webpage using OpenGL to have a dynamic interactive rendering of our hair and/or
+            fur models.
+
+            At this time, it is difficult to measure the quality of our renderings using any objective methods, since it is
+            more about a realistic appearance. Since we are only using one model for each render, we also can’t check for
+            improved performance, since we have no baseline. Therefore, the quality of our images will be mostly subjective.
+        </p>
+    </div>
+<h3>Schedule</h3>
+    <div class="padded">
+        <p>
+            Week 1: Familiarize ourselves with the Mitsuba render, find more models, resources, read through all of
+            the research papers on hair rendering
+
+            Week 2: work on implementing the Marschner model for rendering human hair
+            Week 3: Finish Marschner model and move on to fur rendering.
+            Week 4: Finish fur rendering and (if there’s still more time) make a dynamic fur/hair renderer in OpenGL or WebGL
+
+        </p>
+    </div>
+
+<h3>Resources</h3>
+<div class="padded">
+    <p>
+        <h3 align="middle"> Papers/Online Resources: </h3>
+        <br>
+    <p align="middle">
+        http://www.eugenedeon.com/wp-content/uploads/2014/04/egsrhair.pdf
+        http://people.eecs.berkeley.edu/~lingqi/publications/paper_fur2.pdf
+        http://nickshen.me/184proj/final/
+        http://mitsuba-renderer.org/
+    </p>
+        <br>
+    <h3 align="middle"> Computing Platforms: </h3>
+        <br>
+    <p align="middle">
+        Ubuntu 18.04
+        Windows 10
+        MacOs Mojave
+    </p>
+        <br>
+    <h3 align="middle"> Software: </h3>
+        <br>
+    <p align="middle">
+        Mitsuba Renderer
+        OpenGL (Maybe)
+    </p>
+
+
+    </p>
+</div>
+
+
+
 </body>
+
 </html>
