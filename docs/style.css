@@ -106,7 +106,7 @@ html {
 }
 
 .report-body {
-    padding: 100px;
+    padding: 10px 100px 10px 100px;
     width: 1000px;
     margin: auto;
     text-align: left;
