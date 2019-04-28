@@ -104,3 +104,17 @@ html {
     background-repeat:no-repeat;
     background-repeat: no-repeat;
 }
+
+.report-body {
+    padding: 100px;
+    width: 1000px;
+    margin: auto;
+    text-align: left;
+    font-weight: 300;
+    font-family: 'Open Sans', sans-serif;
+    color: #121212;
+}
+
+.report-body h1, h2, h3, h4 {
+    font-family: 'Source Sans Pro', sans-serif;
+} 
