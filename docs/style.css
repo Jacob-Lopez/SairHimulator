@@ -106,13 +106,14 @@ html {
 }
 
 .report-body {
-    padding: 10px 100px 10px 100px;
+    padding: 10px 100px 200px 100px;
     width: 1000px;
     margin: auto;
     text-align: left;
     font-weight: 300;
     font-family: 'Open Sans', sans-serif;
     color: #121212;
+    font-size: 20px;
 }
 
 .report-body h1, h2, h3, h4 {

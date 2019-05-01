@@ -1,7 +1,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
-<title>Jacob Lopez  |  CS 184</title>
+<title>Hair Sim | CS 184</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
 <link rel="stylesheet" type="text/css" href="style.css" media="screen" />
 </head>
@@ -30,11 +30,54 @@
 <div class="report-body">
     <h1 align="middle">Milestone</h1>
     <h2 align="middle">Jacob Lopez, Isaac Lee, Josh Pechner</h2>
-    <h3>Prompt</h3>
+    <h2>Overview of Progress</h2>
         <div class="padded">
             <p>
-                Create a short webpage for your milestone report. This should be about 1 page long if printed. You should briefly summarize what you have accomplished, preliminary results, reflect on progress relative to your plan, and update your work plan as appropriate. You must submit this milestone deliverable (and the final deliverable) on a persistent website that you can choose to keep up after class if you wish to present this work in your portfolio.
+                So far we’ve accomplished our first minor goal of finding a good renderer and collecting assets, and we are currently making good progress towards understanding how to render realistic hair. We’re a bit behind schedule, but we’ve resolved a lot of our confusions and we have a good trajectory to finish our modified goals.
+            </p>
+            <h2>What we’ve done so far</h2>
+            <p>
+                We initially downloaded the Mitsuba renderer and played around with that for a while. It rendered hair okay but it wasn’t documented very much, and we spent too much time trying to figure out how to add our own code to render hair with the Kajiya-Kay model. We decided that we should look at other renderers that might be easier to work with
 
+                We discovered the Tungsten renderer which was slightly more documented by  the author and had a really nice existing code for hair intersection that would could build our implementation off of. We had a lot of trouble trying to figure out the correlation with what we were reading in the papers on hair rendering and the implementation of the concepts in the context of a path tracer. A lot of the equations we were reading didn’t make sense with the code we were working with in the Tungsten renderer. The tungsten renderer bases their code around the Marschner model for hair rendering, so it would take a lot of work to try and redo things to work with the Kajiya Kay model of rendering. With this in mind, we decided to move towards working with the Marschner model instead.
+
+                We’re currently in a research/experimentation phase with the Tungsten renderer. There’s a lot of code to parse with very little documentation, but we’re confident that we are close to understanding how it all fits together and how we can implement hair rendering.
+            </p>
+            <h2>Preliminary results</h2>
+            <p>
+                We tried implementing the Kajiya Kay model with the tungsten renderer and ended up with some results that we weren’t very satisfied with.
+            </p>
+            <div align="center">
+                <table style="width=100%">
+                    <tr>
+                        <td align="middle">
+                            <img src="images/just_diffuse_ugly.png" height="600px" />
+                            <figcaption align="middle">With only the “diffuse” component</figcaption>
+                        <td>
+                        <td align="middle">
+                            <img src="images/specular_ugly.png" height="600px" />
+                            <figcaption align="middle">All together with the specular component</figcaption>
+                        <td>
+                        <td align="middle">
+                            <img src="images/Tungsten_hair.png" height="600px" />
+                            <figcaption align="middle">Ideally, we would have something that looks like this</figcaption>
+                        <td>
+                    </tr>
+                </table>
+            </div>
+
+            <h2>A New Plan</h2>
+            <p>
+                We decided to move away from the Kajiya Kay model and try to render based on the Marschner model. The Tungsten renderer uses a much more optimized and complicated version of the marschner model, so it would be easier for us integrate our own hair rendering BCSDF with the existing code. After implementing this, we have a few other options for next goals: 
+                
+                <ul>
+                    <li>Precomputing tables of scattering lobes to speed up hair rendering significantly (<a href="https://people.eecs.berkeley.edu/~lingqi/publications/paper_fur2.pdf">Ling-Qi's paper</a>)</li>
+                    <li>Implementing a fur reflectance model that works doubly as a hair reflectance model (also from <a href="https://people.eecs.berkeley.edu/~lingqi/publications/paper_fur2.pdf">Ling-Qi's paper</a>)</li>
+                    <li>Rendering scenes that are not hair but have hair-like qualities (tennis balls, fuzzy sweatshirts, etc).</li>
+                </ul>
+            </p>
+            <p>
+                We are confident that we can figure out the Marschner model for hair rendering and we will evaluate our other goals and pursue them depending on their difficulty and the remaining time we have left.
             </p>
         </div>
 </div>
