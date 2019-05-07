@@ -137,8 +137,7 @@ float HairBcsdf::OurSampleM(float v, float thetaCone, float x1, float x2) const 
 }
 
 float HairBcsdf::csch (float theta) const {
-    //2/(e^x - e^(-x))
-    return 2.0f / (exp(theta) - exp(-theta));
+    return 1.0f / sinh(theta);
 }
 
 float HairBcsdf::OurM(float v, float sinThetaC, float sinThetaO, float cosThetaC, float cosThetaO) const {
@@ -227,9 +226,9 @@ Vec3f HairBcsdf::eval(const SurfaceScatterEvent &event) const
     // "Importance Sampling for Physically-Based Hair Fiber Models"
     // rather than the earlier paper by Marschner et al. I believe
     // these are slightly more accurate.
-    float thetaIR   = thetaI - 2.0f*_scaleAngleRad;
-    float thetaITT  = thetaI +      _scaleAngleRad;
-    float thetaITRT = thetaI + 4.0f*_scaleAngleRad;
+    float thetaIR   = -thetaI + 2.0f*_scaleAngleRad;
+    float thetaITT  = -thetaI -      _scaleAngleRad;
+    float thetaITRT = -thetaI - 4.0f*_scaleAngleRad;
     
     // Evaluate longitudinal scattering functions
     float MR   = OurM(_vR,   std::sin(thetaIR),   sinThetaO, std::cos(thetaIR),   cosThetaO);
@@ -253,9 +252,9 @@ bool HairBcsdf::sample(SurfaceScatterEvent &event) const
     float cosThetaI = trigInverse(sinThetaI);
     float thetaI = std::asin(clamp(sinThetaI, -1.0f, 1.0f));
 
-    float thetaIR   = thetaI - 2.0f*_scaleAngleRad;
-    float thetaITT  = thetaI +      _scaleAngleRad;
-    float thetaITRT = thetaI + 4.0f*_scaleAngleRad;
+    float thetaIR   = -thetaI + 2.0f*_scaleAngleRad;
+    float thetaITT  = -thetaI -      _scaleAngleRad;
+    float thetaITRT = -thetaI - 4.0f*_scaleAngleRad;
 
     // The following lines are just lobe selection
     float weightR   = _nR  ->weight(cosThetaI);
@@ -321,9 +320,9 @@ float HairBcsdf::pdf(const SurfaceScatterEvent &event) const
     if (phi < 0.0f)
         phi += TWO_PI;
 
-    float thetaIR   = thetaI - 2.0f*_scaleAngleRad;
-    float thetaITT  = thetaI +      _scaleAngleRad;
-    float thetaITRT = thetaI + 4.0f*_scaleAngleRad;
+    float thetaIR   = -thetaI + 2.0f*_scaleAngleRad;
+    float thetaITT  = -thetaI -      _scaleAngleRad;
+    float thetaITRT = -thetaI - 4.0f*_scaleAngleRad;
 
     float weightR   = _nR  ->weight(cosThetaI);
     float weightTT  = _nTT ->weight(cosThetaI);
