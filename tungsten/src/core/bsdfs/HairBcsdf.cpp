@@ -126,6 +126,32 @@ Vec3f HairBcsdf::NpIntegrand(float beta, float cosThetaD, float phi, int p, floa
     return Aph*D(beta, deltaPhi);
 }
 
+float HairBcsdf::u(float x, float v) const {
+    return v * std::log(exp(1.0f/v) - 2 * x * std::sinh(1.0f / v));
+}
+
+float HairBcsdf::OurSampleM(float v, float thetaCone, float x1, float x2) const {
+    float theta_prime = M_PI / 2.0f - thetaCone;
+    float u_x1 = u(x1, v);
+    return u_x1 * cos(theta_prime) + sqrt(1 - pow(u_x1, 2)) * cos(2.0f * M_PI * x2) * sin(theta_prime);
+}
+
+float HairBcsdf::csch (float theta) const {
+    //2/(e^x - e^(-x))
+    return 2.0f / (exp(theta) - exp(-theta));
+}
+
+float HairBcsdf::OurM(float v, float sinThetaC, float sinThetaO, float cosThetaC, float cosThetaO) const {
+    float a = csch(1.0f / v) / (2.0f * v);
+    float b = exp(sinThetaC * sinThetaO / v);
+    float c = cosThetaC * cosThetaO / v;
+    float d = 1.0f / cosThetaO;
+    float io = I0(c);
+    return a * b * io * c * d;
+}
+
+
+
 // Rough longitudinal scattering function with variance v = beta^2
 float HairBcsdf::M(float v, float sinThetaI, float sinThetaO, float cosThetaI, float cosThetaO) const
 {
@@ -204,11 +230,11 @@ Vec3f HairBcsdf::eval(const SurfaceScatterEvent &event) const
     float thetaIR   = thetaI - 2.0f*_scaleAngleRad;
     float thetaITT  = thetaI +      _scaleAngleRad;
     float thetaITRT = thetaI + 4.0f*_scaleAngleRad;
-
+    
     // Evaluate longitudinal scattering functions
-    float MR   = M(_vR,   std::sin(thetaIR),   sinThetaO, std::cos(thetaIR),   cosThetaO);
-    float MTT  = M(_vTT,  std::sin(thetaITT),  sinThetaO, std::cos(thetaITT),  cosThetaO);
-    float MTRT = M(_vTRT, std::sin(thetaITRT), sinThetaO, std::cos(thetaITRT), cosThetaO);
+    float MR   = OurM(_vR,   std::sin(thetaIR),   sinThetaO, std::cos(thetaIR),   cosThetaO);
+    float MTT  = OurM(_vTT,  std::sin(thetaITT),  sinThetaO, std::cos(thetaITT),  cosThetaO);
+    float MTRT = OurM(_vTRT, std::sin(thetaITRT), sinThetaO, std::cos(thetaITRT), cosThetaO);
 
     return   MR*  _nR->eval(phi, cosThetaD)
          +  MTT* _nTT->eval(phi, cosThetaD)
@@ -256,7 +282,7 @@ bool HairBcsdf::sample(SurfaceScatterEvent &event) const
     }
 
     // Actual sampling of the direction starts here
-    float sinThetaO = sampleM(v, std::sin(theta), std::cos(theta), xiM.x(), xiM.y());
+    float sinThetaO = OurSampleM(v, theta, xiM.x(), xiM.y());
     float cosThetaO = trigInverse(sinThetaO);
 
     float thetaO = std::asin(clamp(sinThetaO, -1.0f, 1.0f));
@@ -304,9 +330,9 @@ float HairBcsdf::pdf(const SurfaceScatterEvent &event) const
     float weightTRT = _nTRT->weight(cosThetaI);
     float weightSum = weightR + weightTT + weightTRT;
 
-    float pdfR   = weightR  *M(_vR,   std::sin(thetaIR),   sinThetaO, std::cos(thetaIR),   cosThetaO);
-    float pdfTT  = weightTT *M(_vTT,  std::sin(thetaITT),  sinThetaO, std::cos(thetaITT),  cosThetaO);
-    float pdfTRT = weightTRT*M(_vTRT, std::sin(thetaITRT), sinThetaO, std::cos(thetaITRT), cosThetaO);
+    float pdfR   = weightR  *OurM(_vR,   std::sin(thetaIR),   sinThetaO, std::cos(thetaIR),   cosThetaO);
+    float pdfTT  = weightTT *OurM(_vTT,  std::sin(thetaITT),  sinThetaO, std::cos(thetaITT),  cosThetaO);
+    float pdfTRT = weightTRT*OurM(_vTRT, std::sin(thetaITRT), sinThetaO, std::cos(thetaITRT), cosThetaO);
 
     return (1.0f/weightSum)*
           (pdfR  *  _nR->pdf(phi, cosThetaD)

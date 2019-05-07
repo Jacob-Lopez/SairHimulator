@@ -38,8 +38,11 @@ class HairBcsdf : public Bsdf
 
     static float Phi(float gammaI, float gammaT, int p);
 
+    float u(float x, float v) const;
     float M(float v, float sinThetaI, float sinThetaO, float cosThetaI, float cosThetaO) const;
-
+    float OurM(float v, float sinThetaC, float sinThetaO, float cosThetaC, float cosThetaO) const;
+    float OurSampleM(float v, float thetaCone, float x1, float x2) const;
+    float csch (float theta) const;
     float NrIntegrand(float beta, float wiDotWo, float phi, float h) const;
     Vec3f NpIntegrand(float beta, float cosThetaD, float phi, int p, float h) const;
 
