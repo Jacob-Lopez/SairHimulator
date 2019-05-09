@@ -46,6 +46,11 @@ class HairBcsdf : public Bsdf
     float NrIntegrand(float beta, float wiDotWo, float phi, float h) const;
     Vec3f NpIntegrand(float beta, float cosThetaD, float phi, int p, float h) const;
 
+	float HairBcsdf::T(float u, float h);
+	float HairBcsdf::A();
+	float HairBcsdf::N();
+	float HairBcsdf::SampleN();
+
     float sampleM(float v, float sinThetaI, float cosThetaI, float xi1, float xi2) const;
 
     void precomputeAzimuthalDistributions();

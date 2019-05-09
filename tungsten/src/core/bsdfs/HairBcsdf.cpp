@@ -126,14 +126,30 @@ Vec3f HairBcsdf::NpIntegrand(float beta, float cosThetaD, float phi, int p, floa
     return Aph*D(beta, deltaPhi);
 }
 
+float HairBcsdf::T(float u, float h) {
+	return exp(-2 * u * (1 + cos(2 * g)));
+}
+
+float HairBcsdf::A() {
+	return pow(1 - f, 2) * pow(f, p - 1) * pow(T(u, h), p);
+}
+
+float HairBcsdf::N() {
+	
+}
+
+float HairBcsdf::SampleN() {
+	return 0.0f;
+}
+
 float HairBcsdf::u(float x, float v) const {
     return v * std::log(exp(1.0f/v) - 2 * x * std::sinh(1.0f / v));
 }
 
 float HairBcsdf::OurSampleM(float v, float thetaCone, float x1, float x2) const {
-    float theta_prime = M_PI / 2.0f - thetaCone;
+    float theta_prime = PI / 2.0f - thetaCone;
     float u_x1 = u(x1, v);
-    return u_x1 * cos(theta_prime) + sqrt(1 - pow(u_x1, 2)) * cos(2.0f * M_PI * x2) * sin(theta_prime);
+    return u_x1 * cos(theta_prime) + sqrt(1 - pow(u_x1, 2)) * cos(2.0f * PI * x2) * sin(theta_prime);
 }
 
 float HairBcsdf::csch (float theta) const {
