@@ -54,7 +54,8 @@ class HairBcsdf : public Bsdf
 
 	float T(float u, float h, float etaPrime) const;
 	float A(float p, float h, float cosThetaT, float cosThetaD) const;
-    float G(Vec2f U) const ;
+    float A0(float p, float h, float dot) const;
+    float G(Vec2f U) const;
     float sampleM(float v, float sinThetaI, float cosThetaI, float xi1, float xi2) const;
 
     void precomputeAzimuthalDistributions();
