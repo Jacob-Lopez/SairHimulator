@@ -23,7 +23,6 @@ class HairBcsdf : public Bsdf
     const float pTRT = 2.0f;
 
     const float muA = 1.0f;
-
     float _scaleAngleDeg;
     float _melaninRatio;
     float _melaninConcentration;
@@ -44,21 +43,24 @@ class HairBcsdf : public Bsdf
 
     static float Phi(float gammaI, float gammaT, int p);
 
-    float u(float x, float v) const;
     float M(float v, float sinThetaI, float sinThetaO, float cosThetaI, float cosThetaO) const;
-    float OurM(float v, float sinThetaC, float sinThetaO, float cosThetaC, float cosThetaO) const;
-    float OurSampleM(float v, float thetaCone, float x1, float x2) const;
-    float csch (float theta) const;
+
     float NrIntegrand(float beta, float wiDotWo, float phi, float h) const;
     Vec3f NpIntegrand(float beta, float cosThetaD, float phi, int p, float h) const;
-
-	float T(float u, float h, float etaPrime) const;
-	float A(float p, float h, float cosThetaT, float cosThetaD) const;
-    float A0(float p, float h, float dot) const;
-    float G(Vec2f U) const;
+    float OurNpIntegrand(float beta, float cosThetaD, float phi, int p, float h) const;
     float sampleM(float v, float sinThetaI, float cosThetaI, float xi1, float xi2) const;
 
     void precomputeAzimuthalDistributions();
+
+    float u(float x, float v) const;
+    float OurM(float v, float sinThetaC, float sinThetaO, float cosThetaC, float cosThetaO) const;
+    float OurSampleM(float v, float thetaCone, float x1, float x2) const;
+    float csch (float theta) const;
+	float T(float u, float h, float etaPrime) const;
+    Vec3f T(Vec3f u, float h, float etaPrime) const;
+	Vec3f A(float p, float h, float cosThetaT, float cosThetaD) const;
+    float A0(float p, float h, float dot) const;
+    float G(Vec2f U) const;
 
 public:
     HairBcsdf();
@@ -69,6 +71,7 @@ public:
     virtual Vec3f eval(const SurfaceScatterEvent &event) const override;
     virtual bool sample(SurfaceScatterEvent &event) const override;
     virtual float pdf(const SurfaceScatterEvent &event) const override;
+    virtual float OurPdf(const SurfaceScatterEvent &event, float h) const;
 
     virtual void prepareForRender() override;
 };

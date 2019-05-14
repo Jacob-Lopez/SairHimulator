@@ -126,6 +126,21 @@ Vec3f HairBcsdf::NpIntegrand(float beta, float cosThetaD, float phi, int p, floa
     return Aph*D(beta, deltaPhi);
 }
 
+float HairBcsdf::OurNpIntegrand(float beta, float cosThetaD, float phi, int p, float h) const
+{
+    float iorPrime = std::sqrt(Eta*Eta - (1.0f - cosThetaD*cosThetaD))/cosThetaD;
+
+    float gammaI = std::asin(clamp(h, -1.0f, 1.0f));
+    float gammaT = std::asin(clamp(h/iorPrime, -1.0f, 1.0f));
+
+    float deltaPhi = phi - Phi(gammaI, gammaT, p);
+    deltaPhi = std::fmod(deltaPhi, TWO_PI);
+    if (deltaPhi < 0.0f)
+        deltaPhi += TWO_PI;
+
+    return D(beta, deltaPhi);
+}
+
 // Rough longitudinal scattering function with variance v = beta^2
 float HairBcsdf::M(float v, float sinThetaI, float sinThetaO, float cosThetaI, float cosThetaO) const
 {
@@ -204,7 +219,7 @@ Vec3f HairBcsdf::eval(const SurfaceScatterEvent &event) const
     float thetaIR   = -thetaI + 2.0f*_scaleAngleRad;
     float thetaITT  = -thetaI -      _scaleAngleRad;
     float thetaITRT = -thetaI - 4.0f*_scaleAngleRad;
-    
+
     // Evaluate longitudinal scattering functions
     float MR   = OurM(_vR,   std::sin(thetaIR),   sinThetaO, std::cos(thetaIR),   cosThetaO);
     float MTT  = OurM(_vTT,  std::sin(thetaITT),  sinThetaO, std::cos(thetaITT),  cosThetaO);
@@ -214,7 +229,7 @@ Vec3f HairBcsdf::eval(const SurfaceScatterEvent &event) const
          +  MTT* _nTT->eval(phi, cosThetaD)
          + MTRT*_nTRT->eval(phi, cosThetaD);
 }
-
+// CLEAN COPY DONT TOUCH
 // bool HairBcsdf::sample(SurfaceScatterEvent &event) const
 // {
 //     if (!event.requestedLobe.test(BsdfLobes::GlossyLobe))
@@ -227,9 +242,9 @@ Vec3f HairBcsdf::eval(const SurfaceScatterEvent &event) const
 //     float cosThetaI = trigInverse(sinThetaI);
 //     float thetaI = std::asin(clamp(sinThetaI, -1.0f, 1.0f));
 
-//     float thetaIR   = -thetaI + 2.0f*_scaleAngleRad;
-//     float thetaITT  = -thetaI -      _scaleAngleRad;
-//     float thetaITRT = -thetaI - 4.0f*_scaleAngleRad;
+//     float thetaIR   = thetaI - 2.0f*_scaleAngleRad;
+//     float thetaITT  = thetaI +      _scaleAngleRad;
+//     float thetaITRT = thetaI + 4.0f*_scaleAngleRad;
 
 //     // The following lines are just lobe selection
 //     float weightR   = _nR  ->weight(cosThetaI);
@@ -256,7 +271,7 @@ Vec3f HairBcsdf::eval(const SurfaceScatterEvent &event) const
 //     }
 
 //     // Actual sampling of the direction starts here
-//     float sinThetaO = OurSampleM(v, theta, xiM.x(), xiM.y());
+//     float sinThetaO = sampleM(v, std::sin(theta), std::cos(theta), xiM.x(), xiM.y());
 //     float cosThetaO = trigInverse(sinThetaO);
 
 //     float thetaO = std::asin(clamp(sinThetaO, -1.0f, 1.0f));
@@ -277,7 +292,361 @@ Vec3f HairBcsdf::eval(const SurfaceScatterEvent &event) const
 //     return true;
 // }
 
+// Just LOBE
+// bool HairBcsdf::sample(SurfaceScatterEvent &event) const
+// {
+//     if (!event.requestedLobe.test(BsdfLobes::GlossyLobe))
+//         return false;
+
+//     Vec2f xiN = event.sampler->next2D();
+//     Vec2f xiM = event.sampler->next2D();
+
+//     float sinThetaI = event.wi.y();
+//     float cosThetaI = trigInverse(sinThetaI);
+//     float thetaI = std::asin(clamp(sinThetaI, -1.0f, 1.0f));
+
+//     float thetaIR   = thetaI - 2.0f*_scaleAngleRad;
+//     float thetaITT  = thetaI +      _scaleAngleRad;
+//     float thetaITRT = thetaI + 4.0f*_scaleAngleRad;
+
+//     // The following lines are just lobe selection
+//     Vec3f wo_spec = Vec3f(-event.wi.x(), -event.wi.y(), event.wi.z());
+//     float sinThetaO_spec = wo_spec.y();
+//     float thetaO_spec = asin(sinThetaO_spec);
+//     float thetaD_spec = (thetaO_spec - thetaI) / 2.0f;
+//     float cosThetaD_spec = cos(thetaD_spec);
+//     float thetaT = asin(sinThetaI / Eta);
+//     float cosThetaT = cos(thetaT);
+//     float sinThetaT = sin(thetaT);
+//     float h = 2.0f * event.sampler->next1D() - 1.0f;
+//     float weightR = _nR  ->weight(cosThetaI);
+//     float weightTT  = A(pTT, h, cosThetaT, cosThetaD_spec).length();
+//     float weightTRT = A(pTRT, h, cosThetaT, cosThetaD_spec).length();
+
+//     const PrecomputedAzimuthalLobe *lobe;
+//     float v;
+//     float theta;
+
+//     float target = xiN.x()*(weightR + weightTT + weightTRT);
+//     if (target < weightR) {
+//         v = _vR;
+//         theta = thetaIR;
+//         lobe = _nR.get();
+//     } else if (target < weightR + weightTT) {
+//         v = _vTT;
+//         theta = thetaITT;
+//         lobe = _nTT.get();
+//     } else {
+//         v = _vTRT;
+//         theta = thetaITRT;
+//         lobe = _nTRT.get();
+//     }
+
+//     // Actual sampling of the direction starts here
+//     float sinThetaO = sampleM(v, std::sin(theta), std::cos(theta), xiM.x(), xiM.y());
+//     float cosThetaO = trigInverse(sinThetaO);
+
+//     float thetaO = std::asin(clamp(sinThetaO, -1.0f, 1.0f));
+//     float thetaD = (thetaO - thetaI)*0.5f;
+//     float cosThetaD = std::cos(thetaD);
+
+//     float phi, phiPdf;
+//     lobe->sample(cosThetaD, xiN.y(), phi, phiPdf);
+
+//     float sinPhi = std::sin(phi);
+//     float cosPhi = std::cos(phi);
+
+//     event.wo = Vec3f(sinPhi*cosThetaO, sinThetaO, cosPhi*cosThetaO);
+//     event.pdf = pdf(event);
+//     event.weight = eval(event)/event.pdf;
+//     event.sampledLobe = BsdfLobes::GlossyLobe;
+
+//     return true;
+// }
+
+// Just PHI
+// bool HairBcsdf::sample(SurfaceScatterEvent &event) const
+// {
+//     if (!event.requestedLobe.test(BsdfLobes::GlossyLobe))
+//         return false;
+
+//     Vec2f xiN = event.sampler->next2D();
+//     Vec2f xiM = event.sampler->next2D();
+
+//     float sinThetaI = event.wi.y();
+//     float cosThetaI = trigInverse(sinThetaI);
+//     float thetaI = std::asin(clamp(sinThetaI, -1.0f, 1.0f));
+
+//     float thetaIR   = thetaI - 2.0f*_scaleAngleRad;
+//     float thetaITT  = thetaI +      _scaleAngleRad;
+//     float thetaITRT = thetaI + 4.0f*_scaleAngleRad;
+
+//     // The following lines are just lobe selection
+//     float weightR   = _nR  ->weight(cosThetaI);
+//     float weightTT  = _nTT ->weight(cosThetaI);
+//     float weightTRT = _nTRT->weight(cosThetaI);
+
+//     const PrecomputedAzimuthalLobe *lobe;
+//     float v;
+//     float theta;
+
+//     float p;
+//     float target = xiN.x()*(weightR + weightTT + weightTRT);
+//     if (target < weightR) {
+//         v = _vR;
+//         theta = thetaIR;
+//         lobe = _nR.get();
+//         p = pR;
+//     } else if (target < weightR + weightTT) {
+//         v = _vTT;
+//         theta = thetaITT;
+//         lobe = _nTT.get();
+//         p = pTT;
+//     } else {
+//         v = _vTRT;
+//         theta = thetaITRT;
+//         lobe = _nTRT.get();
+//         p = pTRT;
+//     }
+
+//     // Actual sampling of the direction starts here
+//     float sinThetaO = sampleM(v, std::sin(theta), std::cos(theta), xiM.x(), xiM.y());
+//     float cosThetaO = trigInverse(sinThetaO);
+
+//     float thetaO = std::asin(clamp(sinThetaO, -1.0f, 1.0f));
+//     float thetaD = (thetaO - thetaI)*0.5f;
+//     float cosThetaD = std::cos(thetaD);
+
+//     float phi, phiPdf;
+//     float etaPrime = std::sqrt(Eta*Eta - (1.0f - cosThetaD*cosThetaD))/cosThetaD;
+//     float h = 2.0f * event.sampler->next1D() - 1.0f;
+//     float gammaI = std::asin(h);
+//     float gammaT = std::asin(h/etaPrime);
+//     // float phi = clamp(Phi(gammaI, gammaT, p) + (G(event.sampler->next2D()) * sqrt(v)), -10.0, 10.0);
+//     phi = clamp(Phi(gammaI, gammaT, p), -10.0f, 10.0f);
+
+//     float sinPhi = std::sin(phi);
+//     float cosPhi = std::cos(phi);
+
+//     event.wo = Vec3f(sinPhi*cosThetaO, sinThetaO, cosPhi*cosThetaO);
+//     event.pdf = pdf(event);
+//     event.weight = eval(event)/event.pdf;
+//     event.sampledLobe = BsdfLobes::GlossyLobe;
+
+//     return true;
+// }
+
+// Phi lobe and weight
+// bool HairBcsdf::sample(SurfaceScatterEvent &event) const
+// {
+//     if (!event.requestedLobe.test(BsdfLobes::GlossyLobe))
+//         return false;
+
+//     Vec2f xiN = event.sampler->next2D();
+//     Vec2f xiM = event.sampler->next2D();
+
+//     float sinThetaI = event.wi.y();
+//     float cosThetaI = trigInverse(sinThetaI);
+//     float thetaI = std::asin(clamp(sinThetaI, -1.0f, 1.0f));
+
+//     float thetaIR   = thetaI - 2.0f*_scaleAngleRad;
+//     float thetaITT  = thetaI +      _scaleAngleRad;
+//     float thetaITRT = thetaI + 4.0f*_scaleAngleRad;
+
+//     Vec3f wo_spec = Vec3f(-event.wi.x(), -event.wi.y(), event.wi.z());
+//     float sinThetaO_spec = wo_spec.y();
+//     float thetaO_spec = asin(sinThetaO_spec);
+//     float thetaD_spec = (thetaO_spec - thetaI) / 2.0f;
+//     float cosThetaD_spec = cos(thetaD_spec);
+//     float thetaT = asin(sinThetaI / Eta);
+//     float cosThetaT = cos(thetaT);
+//     float sinThetaT = sin(thetaT);
+//     float h = 2.0f * event.sampler->next1D() - 1.0f;
+//     float weightR = _nR  ->weight(cosThetaI);
+//     float weightTT  = A(pTT, h, cosThetaT, cosThetaD_spec).length();
+//     float weightTRT = A(pTRT, h, cosThetaT, cosThetaD_spec).length();
+//     float target = xiN.x()*(weightR + weightTT + weightTRT);
+
+//     const PrecomputedAzimuthalLobe *lobe;
+//     float v;
+//     float theta;
+//     float p;
+//     float weightP = weightR + weightTT + weightTRT;
+//     if (target < weightR) {
+//         v = _vR;
+//         theta = thetaIR;
+//         lobe = _nR.get();
+//         p = pR;
+//         weightP /= weightR;
+//     } else if (target < weightR + weightTT) {
+//         v = _vTT;
+//         theta = thetaITT;
+//         lobe = _nTT.get();
+//         p = pTT;
+//         weightP /= weightTT;
+//     } else {
+//         v = _vTRT;
+//         theta = thetaITRT;
+//         lobe = _nTRT.get();
+//         p = pTRT;
+//         weightP /= weightTRT;
+//     }
+
+//     // Actual sampling of the direction starts here
+//     float sinThetaO = sampleM(v, std::sin(theta), std::cos(theta), xiM.x(), xiM.y());
+//     float cosThetaO = trigInverse(sinThetaO);
+
+//     float thetaO = std::asin(clamp(sinThetaO, -1.0f, 1.0f));
+//     float thetaD = (thetaO - thetaI)*0.5f;
+//     float cosThetaD = std::cos(thetaD);
+
+//     float phi, phiPdf;
+//     float etaPrime = std::sqrt(Eta*Eta - (1.0f - cosThetaD*cosThetaD))/cosThetaD;
+//     float gammaI = std::asin(h);
+//     float gammaT = std::asin(h/etaPrime);
+//     // float phi = clamp(Phi(gammaI, gammaT, p) + (G(event.sampler->next2D()) * sqrt(v)), -10.0, 10.0);
+//     phi = clamp(Phi(gammaI, gammaT, p), -10.0f, 10.0f);
+
+//     // std::cout << phi << std::endl;
+//     // lobe->sample(cosThetaD, xiN.y(), phi, phiPdf);
+
+//     float sinPhi = std::sin(phi);
+//     float cosPhi = std::cos(phi);
+
+//     event.wo = Vec3f(sinPhi*cosThetaO, sinThetaO, cosPhi*cosThetaO);
+//     event.pdf = pdf(event);
+//     // event.weight = eval(event)/event.pdf;
+//     event.weight = A(p, h, cosThetaT, cosThetaD) * weightP;
+//     event.sampledLobe = BsdfLobes::GlossyLobe;
+
+//     return true;
+// }
+
+// phi lobe weight longitudinal
+bool HairBcsdf::sample(SurfaceScatterEvent &event) const
+{
+    if (!event.requestedLobe.test(BsdfLobes::GlossyLobe))
+        return false;
+
+    Vec2f xiN = event.sampler->next2D();
+    Vec2f xiM = event.sampler->next2D();
+
+    float sinThetaI = event.wi.y();
+    float cosThetaI = trigInverse(sinThetaI);
+    float thetaI = std::asin(clamp(sinThetaI, -1.0f, 1.0f));
+
+    float thetaIR   = -thetaI + 2.0f*_scaleAngleRad;
+    float thetaITT  = -thetaI -      _scaleAngleRad;
+    float thetaITRT = -thetaI - 4.0f*_scaleAngleRad;
+
+    Vec3f wo_spec = Vec3f(-event.wi.x(), -event.wi.y(), event.wi.z());
+    float sinThetaO_spec = wo_spec.y();
+    float thetaO_spec = asin(sinThetaO_spec);
+    float thetaD_spec = (thetaO_spec - thetaI) / 2.0f;
+    float cosThetaD_spec = cos(thetaD_spec);
+    float thetaT = asin(sinThetaI / Eta);
+    float cosThetaT = cos(thetaT);
+    float sinThetaT = sin(thetaT);
+    float h = 2.0f * event.sampler->next1D() - 1.0f;
+    float weightR = _nR  ->weight(cosThetaI);
+    float weightTT  = A(pTT, h, cosThetaT, cosThetaD_spec).length();
+    float weightTRT = A(pTRT, h, cosThetaT, cosThetaD_spec).length();
+    float target = xiN.x()*(weightR + weightTT + weightTRT);
+
+    const PrecomputedAzimuthalLobe *lobe;
+    float v;
+    float theta;
+    float p;
+    float weightP = weightR + weightTT + weightTRT;
+    if (target < weightR) {
+        v = _vR;
+        theta = thetaIR;
+        lobe = _nR.get();
+        p = pR;
+        weightP /= weightR;
+    } else if (target < weightR + weightTT) {
+        v = _vTT;
+        theta = thetaITT;
+        lobe = _nTT.get();
+        p = pTT;
+        weightP /= weightTT;
+    } else {
+        v = _vTRT;
+        theta = thetaITRT;
+        lobe = _nTRT.get();
+        p = pTRT;
+        weightP /= weightTRT;
+    }
+
+    // Actual sampling of the direction starts here
+    // float sinThetaO = sampleM(v, std::sin(theta), std::cos(theta), xiM.x(), xiM.y());
+    float sinThetaO = OurSampleM(v, theta, xiM.x(), xiM.y());
+    float cosThetaO = trigInverse(sinThetaO);
+
+    float thetaO = std::asin(clamp(sinThetaO, -1.0f, 1.0f));
+    float thetaD = (thetaO - thetaI)*0.5f;
+    float cosThetaD = std::cos(thetaD);
+
+    float phi, phiPdf;
+    float etaPrime = std::sqrt(Eta*Eta - (1.0f - cosThetaD*cosThetaD))/cosThetaD;
+    float gammaI = std::asin(h);
+    float gammaT = std::asin(h/etaPrime);
+    // float phi = clamp(Phi(gammaI, gammaT, p) + (G(event.sampler->next2D()) * sqrt(v)), -10.0, 10.0);
+    phi = clamp(Phi(gammaI, gammaT, p), -10.0f, 10.0f);
+
+    // std::cout << phi << std::endl;
+    // lobe->sample(cosThetaD, xiN.y(), phi, phiPdf);
+
+    float sinPhi = std::sin(phi);
+    float cosPhi = std::cos(phi);
+
+    event.wo = Vec3f(sinPhi*cosThetaO, sinThetaO, cosPhi*cosThetaO);
+    event.pdf = OurPdf(event, h);
+    // event.weight = eval(event)/event.pdf;
+    event.weight = A(p, h, cosThetaT, cosThetaD) * weightP;
+    event.sampledLobe = BsdfLobes::GlossyLobe;
+
+    return true;
+}
+
 float HairBcsdf::pdf(const SurfaceScatterEvent &event) const
+{
+    if (!event.requestedLobe.test(BsdfLobes::GlossyLobe))
+        return 0.0f;
+
+    float sinThetaI = event.wi.y();
+    float sinThetaO = event.wo.y();
+    float cosThetaI = trigInverse(sinThetaI);
+    float cosThetaO = trigInverse(sinThetaO);
+    float thetaI = std::asin(clamp(sinThetaI, -1.0f, 1.0f));
+    float thetaO = std::asin(clamp(sinThetaO, -1.0f, 1.0f));
+    float thetaD = (thetaO - thetaI)*0.5f;
+    float cosThetaD = std::cos(thetaD);
+
+    float phi = std::atan2(event.wo.x(), event.wo.z());
+    if (phi < 0.0f)
+        phi += TWO_PI;
+
+    float thetaIR   = -thetaI + 2.0f*_scaleAngleRad;
+    float thetaITT  = -thetaI -      _scaleAngleRad;
+    float thetaITRT = -thetaI - 4.0f*_scaleAngleRad;
+
+    float weightR   = _nR  ->weight(cosThetaI);
+    float weightTT  = _nTT ->weight(cosThetaI);
+    float weightTRT = _nTRT->weight(cosThetaI);
+    float weightSum = weightR + weightTT + weightTRT;
+
+    float pdfR   = weightR  *OurM(_vR,   std::sin(thetaIR),   sinThetaO, std::cos(thetaIR),   cosThetaO) * pow(cosThetaO, 2.0f);
+    float pdfTT  = weightTT *OurM(_vTT,  std::sin(thetaITT),  sinThetaO, std::cos(thetaITT),  cosThetaO) * pow(cosThetaO, 2.0f);
+    float pdfTRT = weightTRT*OurM(_vTRT, std::sin(thetaITRT), sinThetaO, std::cos(thetaITRT), cosThetaO) * pow(cosThetaO, 2.0f);
+
+    return (1.0f/weightSum)*
+          (pdfR  *  _nR->pdf(phi, cosThetaD)
+         + pdfTT * _nTT->pdf(phi, cosThetaD)
+         + pdfTRT*_nTRT->pdf(phi, cosThetaD));
+}
+
+float HairBcsdf::OurPdf(const SurfaceScatterEvent &event, float h) const
 {
     if (!event.requestedLobe.test(BsdfLobes::GlossyLobe))
         return 0.0f;
@@ -309,9 +678,9 @@ float HairBcsdf::pdf(const SurfaceScatterEvent &event) const
     float pdfTRT = weightTRT*OurM(_vTRT, std::sin(thetaITRT), sinThetaO, std::cos(thetaITRT), cosThetaO);
 
     return (1.0f/weightSum)*
-          (pdfR  *  _nR->pdf(phi, cosThetaD)
-         + pdfTT * _nTT->pdf(phi, cosThetaD)
-         + pdfTRT*_nTRT->pdf(phi, cosThetaD));
+          (pdfR  *  OurNpIntegrand(_betaR, cosThetaD, phi, pR, h)
+         + pdfTT * OurNpIntegrand(_betaTT, cosThetaD, phi, pTT, h)
+         + pdfTRT*  OurNpIntegrand(_betaTRT, cosThetaD, phi, pTRT, h));
 }
 
 
@@ -443,21 +812,36 @@ void HairBcsdf::prepareForRender()
     precomputeAzimuthalDistributions();
 }
 
-
 float HairBcsdf::T(float mu, float h, float etaPrime) const {
     float gammaT = asin(h/etaPrime);
 	return exp(-2 * mu * (1 + cos(2 * gammaT)));
 }
 
-float HairBcsdf::A(float p, float h, float cosThetaT, float cosThetaD) const {
-    float mu_a_prime = muA / cosThetaT;
+Vec3f HairBcsdf::T(Vec3f sigma, float h, float etaPrime) const {
+    float gammaT = asin(h/etaPrime);
+    float temp =-2.0f * (1 + cos(2 * gammaT));
+	return std::exp(sigma * temp);
+}
+
+Vec3f HairBcsdf::A(float p, float h, float cosThetaT, float cosThetaD) const {
+    // float mu_a_prime = muA / cosThetaT;
+    // float f = Fresnel::dielectricReflectance(1.0f/Eta, cosThetaD*trigInverse(h));
+    // //float f = Fresnel::dielectricReflectance(Eta, acos(cosThetaD*cos(asin(h))));
+    // float etaPrime = std::sqrt(Eta*Eta - (1.0f - cosThetaD*cosThetaD))/cosThetaD;
+    // if (p == 0.0f)
+    //     return (1.0f - f)*(1.0f - f)*T(mu_a_prime, h, etaPrime);
+	// return pow(1.0f - f, 2.0f) * pow(f, p - 1.0f) * pow(T(mu_a_prime, h, etaPrime), p);
+    Vec3f sigmaPrime = _sigmaA / cosThetaT;
     float f = Fresnel::dielectricReflectance(1.0f/Eta, cosThetaD*trigInverse(h));
     float etaPrime = std::sqrt(Eta*Eta - (1.0f - cosThetaD*cosThetaD))/cosThetaD;
-	return pow(1 - f, 2) * pow(f, p - 1) * pow(T(mu_a_prime, h, etaPrime), p);
+    if (p == 0.0f)
+        return (1.0f - f)*(1.0f - f)*T(sigmaPrime, h, etaPrime);
+    float temp = pow(1.0f - f, 2.0f) * pow(f, p - 1.0f);
+	return temp * std::pow(T(sigmaPrime, h, etaPrime), p);
 }
 
 float HairBcsdf::A0(float p, float h, float dot) const {
-    return Fresnel::dielectricReflectance(Eta, 0.5f * acos(dot));
+    return Fresnel::dielectricReflectance(1/Eta, 0.5f * acos(dot));
 }
 
 float HairBcsdf::G(Vec2f U) const {
@@ -487,163 +871,5 @@ float HairBcsdf::OurM(float v, float sinThetaC, float sinThetaO, float cosThetaC
     return a * b * io * c * d;
 }
 
-bool HairBcsdf::sample(SurfaceScatterEvent &event) const
-{
-    if (!event.requestedLobe.test(BsdfLobes::GlossyLobe))
-        return false;
-    // Random samples
-    Vec2f x1 = event.sampler->next2D();
-    Vec2f x2 = event.sampler->next2D();
-
-    Vec3f wi = event.wi;
-
-    float sinThetaI = wi.y();
-    float thetaI = std::asin(sinThetaI);
-    float cosThetaI = std::cos(thetaI);
-    float thetaT = asin(sinThetaI / Eta);
-
-    // Theta cone values for different lobes
-    float thetaCR   = -thetaI + 2.0f*_scaleAngleRad;
-    float thetaCTT  = -thetaI -      _scaleAngleRad;
-    float thetaCTRT = -thetaI - 4.0f*_scaleAngleRad;
-
-    // Lobe selection
-    float v;
-    float thetaC;
-    float h = 2.0f * event.sampler->next1D() - 1.0f;
-    Vec3f wo_spec = Vec3f(-event.wi.x(), -event.wi.y(), event.wi.z());
-    float dot_ref = wi.dot(wo_spec);
-    float sinThetaO_spec = wo_spec.y();
-    float thetaO_spec = asin(sinThetaO_spec);
-    float thetaD_spec = (thetaO_spec - thetaI) / 2.0f;
-    float cosThetaT = cos(thetaT);
-    float cosThetaD_spec = cos(thetaD_spec);
-    float wR   = A0(pR, h, dot_ref);
-    float wTT  = A(pTT, h, cosThetaT, cosThetaD_spec);
-    float wTRT = A(pTRT, h, cosThetaT, cosThetaD_spec);
-    
-    float p;
-    float wp;
-    float target = x2.x()*(wR + wTT + wTRT);
-    if (target < wR) {
-        v = _vR;
-        thetaC = thetaCR;
-        p = pR;
-        wp = wR;
-    } else if (target < wR + wTT) {
-        v = _vTT;
-        thetaC = thetaCTT;
-        p = pTT;
-        wp = wTT;
-    } else {
-        v = _vTRT;
-        thetaC = thetaCTRT;
-        p = pTRT;
-        wp = wTRT;
-    }
-
-    //Longitudinal sampling
-    float sinThetaO = OurSampleM(v, thetaC, x1.x(), x1.y());
-    float cosThetaO = trigInverse(sinThetaO);
-
-    float thetaO = std::asin(sinThetaO);
-    float thetaD = (thetaO - thetaI)*0.5f;
-    float cosThetaD = std::cos(thetaD);
-
-    // Azimuthal Sampling
-    //lobe->sample(cosThetaD, x2.y(), phi, phiPdf);
-    
-    float etaPrime = std::sqrt(Eta*Eta - (1.0f - cosThetaD*cosThetaD))/cosThetaD;
-    float gammaI = std::asin(h);
-    float gammaT = std::asin(h/etaPrime);
-    float phi = Phi(gammaI, gammaT, p) + (G(event.sampler->next2D()) * sqrt(v));
-    //std::cout << G(event.sampler->next2D()) << std::endl;
-    // std::cout << sqrt(v) << std::endl;
-    //float phiPdf = PhiPdf();
-
-    float sinPhi = std::sin(phi);
-    float cosPhi = std::cos(phi);
-
-    event.wo = Vec3f(sinPhi*cosThetaO, sinThetaO, cosPhi*cosThetaO);
-    event.pdf = pdf(event);;
-    event.weight = eval(event) / event.pdf;//event.wo * A(p, h, cosThetaT, cosThetaD) / wp;
-    event.sampledLobe = BsdfLobes::GlossyLobe;
-
-    return true;
-}
-
-// bool HairBcsdf::sample(SurfaceScatterEvent &event) const
-// {
-//     if (!event.requestedLobe.test(BsdfLobes::GlossyLobe))
-//         return false;
-
-//     Vec2f xiN = event.sampler->next2D();
-//     Vec2f xiM = event.sampler->next2D();
-
-//     float sinThetaI = event.wi.y();
-//     float cosThetaI = trigInverse(sinThetaI);
-//     float thetaI = std::asin(clamp(sinThetaI, -1.0f, 1.0f));
-
-//     float thetaIR   = -thetaI + 2.0f*_scaleAngleRad;
-//     float thetaITT  = -thetaI -      _scaleAngleRad;
-//     float thetaITRT = -thetaI - 4.0f*_scaleAngleRad;
-
-
-//     float v;
-//     float theta;
-//     float thetaT = asin(sinThetaI / Eta);
-//     float h = 2.0f * event.sampler->next1D() - 1.0f;
-//     Vec3f wo_spec = Vec3f(-event.wi.x(), -event.wi.y(), event.wi.z());
-//     float dot_ref = event.wi.dot(wo_spec);
-
-//     float sinThetaO_spec = wo_spec.y();
-//     float thetaO_spec = asin(sinThetaO_spec);
-//     float thetaD_spec = (thetaO_spec - thetaI) / 2.0f;
-//     float cosThetaT = cos(thetaT);
-//     float cosThetaD_spec = cos(thetaD_spec);
-//     // The following lines are just lobe selection
-//     float weightR   = A0(pR, h, dot_ref);
-//     float weightTT  = A(pTT, h, cosThetaT, cosThetaD_spec);
-//     float weightTRT = A(pTRT, h, cosThetaT, cosThetaD_spec);
-
-//     const PrecomputedAzimuthalLobe *lobe;
-
-//     float p;
-//     float target = xiN.x()*(weightR + weightTT + weightTRT);
-//     if (target < weightR) {
-//         v = _vR;
-//         theta = thetaIR;
-//         lobe = _nR.get();
-//     } else if (target < weightR + weightTT) {
-//         v = _vTT;
-//         theta = thetaITT;
-//         lobe = _nTT.get();
-//     } else {
-//         v = _vTRT;
-//         theta = thetaITRT;
-//         lobe = _nTRT.get();
-//     }
-
-//     // Actual sampling of the direction starts here
-//     float sinThetaO = OurSampleM(v, theta, xiM.x(), xiM.y());
-//     float cosThetaO = trigInverse(sinThetaO);
-
-//     float thetaO = std::asin(clamp(sinThetaO, -1.0f, 1.0f));
-//     float thetaD = (thetaO - thetaI)*0.5f;
-//     float cosThetaD = std::cos(thetaD);
-
-//     float phi, phiPdf;
-//     lobe->sample(cosThetaD, xiN.y(), phi, phiPdf);
-
-//     float sinPhi = std::sin(phi);
-//     float cosPhi = std::cos(phi);
-
-//     event.wo = Vec3f(sinPhi*cosThetaO, sinThetaO, cosPhi*cosThetaO);
-//     event.pdf = pdf(event);
-//     event.weight = eval(event)/event.pdf;
-//     event.sampledLobe = BsdfLobes::GlossyLobe;
-
-//     return true;
-// }
 
 }
