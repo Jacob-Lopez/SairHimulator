@@ -55,6 +55,12 @@
 h2 {
     font-size: larger;
 }
+h3 {
+    font-size: large;
+}
+h4 {
+    font-size: medium;
+}
 .column {
     width: 50%;
     float: left;
@@ -116,6 +122,6 @@ html {
     font-size: 20px;
 }
 
-.report-body h1, h2, h3, h4 {
+.report-body h1, h2, h4 {
     font-family: 'Source Sans Pro', sans-serif;
 } 

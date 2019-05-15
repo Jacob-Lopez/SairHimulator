@@ -1,0 +1,256 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<title>Hair Sim | CS 184</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="style.css" media="screen" />
+</head>
+<body>
+    <div class="site-header">
+            <div class="row">
+                <div class="name-header">
+                    <p>Hair Simulator - CS184</p>
+                </div>
+                <div class="title-bar">
+                    <ul>
+                        <li>
+                            <a href="proposal.html">Proposal</a>
+                        </li>
+                        <li>
+                            <a href="milestone.html">Milestone</a>
+                        </li>
+                        <li>
+                            <a href="report.html">Final Report</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+<br />
+<div class="report-body">
+    <h1 align="middle">Rendering Realistic Human Hair</h1>
+    <h2 align="middle">Jacob Lopez, Isaac Lee, Josh Pechner</h2>
+    <h2>Abstract</h2>
+        <div class="padded">
+            <p>
+                In this project, our goal was to realistically render hair using both the Kajiya Kay and Marschner models. For our Kajiya Kay model, we built a BSDF using the Mitsuba renderer. 
+                For our second model, which ended up using a modified version of the Marschner model, we used the Tungsten renderer. Ultimately, we were able to get some working hair renderings using both models,
+                to varying degrees of success.
+            </p>
+    <h2>Technical Approach</h2>
+        <div class="padded">
+        <h3>Kajiya Kay Model</h3>
+            <p>
+                The Kajiya-Kay model represents the reflection of light off of hairs in not just one direction, but off a cone formed by rotating the tangent vector of the hair by the surface normal at the intersection of the ray and the hair.
+            </p>
+            <div align="center">
+                <img src="images/figures/kk.png" height="400px">
+                <figcaption align="middle">Reflection of the incoming vector by the cone</figcaption>
+            </div>
+            <br>
+            <p>
+                Implementation of this incorporates a diffuse and specular component. The diffuse part is mathematically equivalent to the Blinn-Phong diffuse. Implementation used the equation: 
+            </p>
+            <div align="center">
+                <img src="images/equations/kajiyakaydiffuse.png" height="150px">
+            </div>
+            <p>
+                The specular component differs from Blinn-Phong and is obtained by the equation:
+            </p>
+            <div align="center">
+                <img src="images/equations/kajiyakayspecular.png" height="150px">
+            </div>
+            <p>
+                We have t as the tangent vector to the hair cylinder, l as the vector to the light sounce, and e as the vector to the camera. K<sub>s</sub> is the , K<sub>s</sub> is the , and p is .
+            </p>
+
+        <h3>Modified Marschner Model</h3>
+            <p>
+                The modified version of Marschner we use is a major upgrade from Kajiya Kay. However, the better rendering comes at a cost of a much more complicated rendering scheme. This is done in three main steps. First, the lobe, or type of reflection is calculated. Then, we sample the longitudal angle. After this we can sample the azimuthal angle. When this is all done, we can then use the calculated weights and samples to calculate the final outgoing vector and weight. 
+            </p>
+            <h4>Lobe Selection</h4>
+                <div align="center">
+                    <img src="images/figures/lobes.png">
+                    <figcaption align="middle">The three types of lobes</figcaption>
+                </div>
+                <br>
+                <p>
+                    The first step in the process is to determine which lobe selection. In this paper, the lobe refers to which reflectance pattern the light follows off of the hair. There are three lobes that we used in our model: R, TT, and TRT. Each of these is referred to with a value p. For R we set p = 0, for TT we set p = 1, and for TRT we set p = 2. R, or reflection, refers to when the light reflects off of the outside surface of the hair. TT, or double transmission, refers to the hair passing through the first side of the hair fiber, through it, and out the other side. TRT, or transmission-reflection-transmission, refers to the light transmitting through the outside surface of the hair, reflecting off of the inside surface of the hair, and transmitting again to the outside of the hair. 
+                </p>
+                <br>
+                <p>
+                   To actually implement lobe selection, we first assume a smooth, perfectly specular hair fiber.
+                    We can calculate the attenuations through this fiber using the function below. To do so, we calculate the attenuations, A<sub>spec</sub>(p,h) (using A(p,h) defined in the azimuthal section below) for each lobe p where h is a randomly sampled number in [-1, 1). Then, we weight the likelihood of choosing each lobe by its A<sub>spec</sub>(p,h) relative to the others. 
+                </p>
+            <h4>Importance Sampling the Azimuthal N Functions</h4>
+                <div align="center">
+                    <img src="images/figures/azimuthal.png">
+                    <figcaption align="middle">The three types of lobes with outgoing azimuthal angles</figcaption>
+                </div>
+                <br>
+                <p>
+                    To sample the azimuthal angle, we us the function φ. G is a standard gaussian random varible we sampled using the Box-Muller equation. We have h = 2ξ<sub>h</sub> − 1, where ξ<sub>h</sub> is a uniformly random sample from [0, 1), which as shown above represents the position at which the incoming vector hits the hair. v<sub>p,N</sub> is assigned a value based on the lobe selected. γ<sub>i</sub> and γ<sub>i</sub> are shown above, and are the angles of reflection inside and outside of the hair fiber.
+                </p>
+                <div align="center">
+                    <img src="images/equations/phi.png">
+                </div>
+                <div align="center">
+                    <img src="images/equations/big_phi.png">
+                </div>
+                <p>
+                    The sample weight is A(p,h). μ<sub>a</sub> is the absorbtion coefficient and μ<sub>a</sub>' = μ<sub>a</sub> / cos(θ<sub>t</sub>). 
+                </p>
+                <div align="center">
+                    <img src="images/equations/A.png">
+                </div>
+                <p>
+                    F is defined as the Fresnel term, with θ<sub>d</sub> as the difference angle between the in and out vectors. η is the index of refraction and η' is a modified η based on θ<sub>d</sub>.
+                </p>
+                <div align="center">
+                    <img src="images/equations/f.png">
+                </div>
+                <p>
+                   Below we have T, which is the absorbtion term.
+                </p>
+                <div align="center">
+                    <img src="images/equations/T.png">
+                </div>
+                <p>
+                    The PDF for this sample is the below equation with A replaced with 1.  
+                </p>
+                <div align="center">
+                    <img src="images/equations/np.png">
+                </div>
+            <h4>Importance Sampling the Longitudinal N function</h4>
+                <p>
+                    To sample the longitudinal angle, we use the function θ<sub>o</sub>(ξ<sub>1</sub>,ξ<sub>2</sub>,v,θ<sub>cone</sub>) where ξ<sub>1</sub>,ξ<sub>2</sub> are two uniform random numbers in [0, 1) and θ’ = π/2 − θ<sub>cone</sub>. V is the variance our azimuthal calculations. We have θ<sub>cone,R</sub> = −θ<sub>i</sub> + 2α, θ<sub>cone,TT</sub> = θ<sub>i</sub> - a, 
+                    θ<sub>cone,TRT</sub> = −θ<sub>i</sub> - 4α.
+                </p>
+                <div align="center">
+                    <img src="images/equations/theta.png">
+                </div>
+                <p>
+                    We use u(ξ<sub>1</sub>) to sample a spherical gaussian with variance 1.
+                </p>
+                <div align="center">
+                    <img src="images/equations/u.png">
+                </div>
+                <p>
+                    Since this is perfect importance sampling, the weight is 1 and the PDF is Mcos<sup>2</sup>θ<sub>o</sub>.
+                </p>
+                <div align="center">
+                    <img src="images/equations/M.png">
+                </div>
+            <h3>Problems Encountered</h3>
+                <p>
+                    The first problem we encountered was finding a suitable renderer to implement the two of our hair reflectance models. We first explored the Mitsuba renderer because it was recommended by the course staff and it already handled hair intersection for raytracing. However Mitsuba wasn’t well documented and we had trouble finding a way to integrate our code for the Marschner model into the source code for Mitsuba. We moved on to the Tungsten renderer because it also had good existing code to handle hair intersection and it also had an implementation of a BCSDF similar to Marschner. We found this to be a good start from which to start writing our own BCSDF based on the few papers we decided to use (listed in the resources section). We ended up returning to Mitsuba to implement Kajiya Kay because we struggled for a while to integrate it into Tungsten. We could also reference some of the similar BSDFs that were implemented in Mitsuba to help us with our implementation of Kajiya Kay.
+                </p>
+                <br>
+                <p>
+                    The Modified Marchner model was incredibly difficult to implement for many reasons. The papers we read often had a mathematical explanation for how the reflectance model should work, but nothing about implementation in the context of ray-tracing. We had to find a different paper that talked about how to implement a hair bcsdf with ray-tracing, but it differed in many ways from the Marchner model and related papers. On top of this, a lot of the papers directly contradicted each other in terms of the math, but we couldn’t just rely on one paper because each paper was ambiguous or incomplete in some way. To proceed with our own implementation, we had to piece together components of each of the papers we used and filled in the gaps with equations we derived ourselves.
+                </p>
+                <br>
+                <p>
+                    The final struggle for the Modified Marschner model which we were not able to overcome was implementing the final calculation of a sample’s weight. Tungsten oddly represents the weight of a sample as a 3d vector, which didn’t match any papers we read. We reasoned that this vector was some representation of the resulting scaled color of the reflected light. The results of our own implementation of sample weighting were discolored, and it was extremely hard to debug this due to the poor documentation of Tungsten and because none of our reference papers calculated weight the same way as Tungsten required it.
+                </p>
+                <br>
+                <p>
+                    The biggest challenge with implementing the Kajiya-Kay model was the lack of documentation for Mitsuba renderer. It is a large project with many files and components and we had to run many tests to even begin to understand what each component of the renderer represented. Though we were able to figure out a majority of what we needed through lots of trial and error, we ended up using a microfacet implementation for the specular component similar to the one used in project 3.2 using a Fresnel term, a Shadow-Masking term, and the normal distribution of function of the microfactet.
+                </p>
+            <h3>Lessons Learned</h3>
+                <p>
+                    For the Marschner part, we learned that hair rendering models are nowhere near perfect and that there is still no single correct way to do it. The Marschner model can get quite tricky because there are so many ways to calculate each part of the BCSDF sample function, and it seems that each paper we found has a slightly different way of doing their calculations. Maybe one day there will be an agreed upon method, but we learned that today’s methods of rendering hair are very difficult to replicate with open source renderers. 
+                </p>
+                <br>
+                <p>
+                    In addition to getting experience with parsing and understanding open-source code created by others, the Kajiya-Kay part of the project helped in understanding some of the basic ideas and principles in hair rendering. We learned some earlier ideas of way that people represented the way that light interacts with hair (the Kajiya-Kay model) and we were able to see how this theory was improved upon by the Marchner model. 
+                </p>
+    <h2>Results</h2>
+        <h3>Kajiya Kay</h3>
+        <p>
+            These were all rendered at 64 samples per pixel, with Kd = 0.4 and Ks = 0.6.
+        </p>
+        <br>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td align="middle">
+                        <img src="images/renders/KK Diffuse.png" height="300px" />
+                        <figcaption align="middle">With only the diffuse component</figcaption>
+                    <td>
+                    <td align="middle">
+                        <img src="images/renders/KK Spec.png" height="300px" />
+                        <figcaption align="middle">With only the specular component</figcaption>
+                    <td>
+                    <td align="middle">
+                        <img src="images/renders/KK Both.png" height="300px" />
+                        <figcaption align="middle">With both specular and diffuse components</figcaption>
+                    <td>
+                </tr>
+            </table>
+        </div>
+        <div align="center">
+            <img src="images/renders/KK Furball.png" height="600px">
+        </div>
+        <div align="center">
+            <img src="images/renders/KK Strands.png" height="600px">
+        </div>
+        <h3>Modified Marschner Model</h3>
+            <p>
+                We were unable to correctly calculate the weight of our samples, resulting in discoloration of our final results. However, since Tungstens code was loosely based on the Marschner model, we were able to call Tungsten’s sample weighting function in our code. The following images are with our longitudinal sampling, azimuthal sampling, lobe selection, and longitudinal weighting.
+            </p>
+            <p>
+                The following images are our complete Marchner implementation with the defective sample weighting.
+            </p>
+            <div align="center">
+                <table style="width=100%">
+                    <tr>
+                        <td align="middle">
+                            <img src="images/just_diffuse_ugly.png" height="600px" />
+                            <figcaption align="middle">With only the “diffuse” component</figcaption>
+                        <td>
+                        <td align="middle">
+                            <img src="images/specular_ugly.png" height="600px" />
+                            <figcaption align="middle">All together with the specular component</figcaption>
+                        <td>
+                        <td align="middle">
+                            <img src="images/Tungsten_hair.png" height="600px" />
+                            <figcaption align="middle">Ideally, we would have something that looks like this</figcaption>
+                        <td>
+                    </tr>
+                </table>
+            </div>
+
+    <h2>References</h2>
+        <h3>Renderers</h3>
+            <p>Mitsuba Renderer: <a href="https://www.mitsuba-renderer.org">https://www.mitsuba-renderer.org</a></p>
+            <p>Tungsten Renderer: <a href="https://benedikt-bitterli.me/tungsten.html">https://benedikt-bitterli.me/tungsten.html</a></p>
+        <h3>Papers</h3>
+            <p>Marschner, Light Scattering from Human Hair Fibers: <a href="http://www.graphics.stanford.edu/papers/hair/hair-sg03final.pdf">http://www.graphics.stanford.edu/papers/hair/hair-sg03final.pdf</a></p>
+            <p>d’Eon et al., An Energy-Conserving Hair Reflectance Model: <a href="http://www.graphics.stanford.edu/papers/hair/hair-sg03final.pdf">http://www.graphics.stanford.edu/papers/hair/hair-sg03final.pdf</a></p>
+            <p>Johannes Hanika, Importance Sampling for Physically-Based Hair Fiber Models: <a href="https://cg.ivd.kit.edu/publications/pubhanika/2013_hairbrief.pdf">https://cg.ivd.kit.edu/publications/pubhanika/2013_hairbrief.pdf</a></p>
+            <p>Kajiya Kay, Rendering Fur with Three Dimensional Textures: <a href="https://cg.ivd.kit.edu/publications/pubhanika/2013_hairbrief.pdf">https://cg.ivd.kit.edu/publications/pubhanika/2013_hairbrief.pdf</a></p>
+
+    <h2>Contributions</h2>
+        <h3>Jacob</h3>
+            <p>
+                Jacob worked on researching renderers, coding our initial attempt at Kajiya Kay using Tungsten, worked on our Modified Marschner model on top of Tungsten, and contributed to each of the deliverables for the proposal, milestone, final presentation, and final report.
+            </p>
+        <h3>Josh</h3>
+            <p>
+                Josh worked on coding our initial attempt at Kajiya Kay using Tungsten, worked on our Modified Marschner model on top of Tungsten, and contributed to each of the deliverables for the proposal, milestone, final presentation, and final report.
+            </p>
+        <h3>Isaac</h3>
+        <p>
+            Isaac worked on on coding our initial attempt at Kajiya Kay using Tungsten, building, using, and understanding Mitsuba renderer, coded our second attempt at Kajiya Kay using Mitsuba, and contributed to each of the deliverables for the proposal, milestone, final presentation, and final report.
+        </p>
+
+    <h2>Video</h2>
+        <div align="center">
+            <iframe width="640" height="400" src="https://www.youtube.com/embed/z4RHHnfc1DA" frameborder="0" allowfullscreen/>
+        </div>
+
+</div>
+</body>
+
+</html>
