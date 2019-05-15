@@ -221,14 +221,15 @@ Vec3f HairBcsdf::eval(const SurfaceScatterEvent &event) const
     float thetaITRT = thetaI + 4.0f*_scaleAngleRad;
 
     // Evaluate longitudinal scattering functions
-    float MR   = M(_vR,   std::sin(thetaIR),   sinThetaO, std::cos(thetaIR),   cosThetaO);
-    float MTT  = M(_vTT,  std::sin(thetaITT),  sinThetaO, std::cos(thetaITT),  cosThetaO);
-    float MTRT = M(_vTRT, std::sin(thetaITRT), sinThetaO, std::cos(thetaITRT), cosThetaO);
+    float MR   = OurM(_vR,   std::sin(thetaIR),   sinThetaO, std::cos(thetaIR),   cosThetaO);
+    float MTT  = OurM(_vTT,  std::sin(thetaITT),  sinThetaO, std::cos(thetaITT),  cosThetaO);
+    float MTRT = OurM(_vTRT, std::sin(thetaITRT), sinThetaO, std::cos(thetaITRT), cosThetaO);
 
     return   MR*  _nR->eval(phi, cosThetaD)
          +  MTT* _nTT->eval(phi, cosThetaD)
          + MTRT*_nTRT->eval(phi, cosThetaD);
 }
+
 // CLEAN COPY DONT TOUCH
 bool HairBcsdf::sample(SurfaceScatterEvent &event) const
 {
@@ -535,9 +536,9 @@ bool HairBcsdf::sample(SurfaceScatterEvent &event) const
 //     float cosThetaI = trigInverse(sinThetaI);
 //     float thetaI = std::asin(clamp(sinThetaI, -1.0f, 1.0f));
 
-//     float thetaIR   = -thetaI + 2.0f*_scaleAngleRad;
-//     float thetaITT  = -thetaI -      _scaleAngleRad;
-//     float thetaITRT = -thetaI - 4.0f*_scaleAngleRad;
+//     float thetaIR   = thetaI - 2.0f*_scaleAngleRad;
+//     float thetaITT  = thetaI +      _scaleAngleRad;
+//     float thetaITRT = thetaI + 4.0f*_scaleAngleRad;
 
 //     Vec3f wo_spec = Vec3f(-event.wi.x(), -event.wi.y(), event.wi.z());
 //     float sinThetaO_spec = wo_spec.y();
@@ -601,9 +602,9 @@ bool HairBcsdf::sample(SurfaceScatterEvent &event) const
 //     float cosPhi = std::cos(phi);
 
 //     event.wo = Vec3f(sinPhi*cosThetaO, sinThetaO, cosPhi*cosThetaO);
-//     event.pdf = OurPdf(event, h);
-//     // event.weight = eval(event)/event.pdf;
-//     event.weight = A(p, h, cosThetaT, cosThetaD) * weightP;
+//     event.pdf = pdf(event);
+//     event.weight = eval(event)/event.pdf;
+//     // event.weight = A(p, h, cosThetaT, cosThetaD) * weightP;
 //     event.sampledLobe = BsdfLobes::GlossyLobe;
 
 //     return true;
@@ -636,9 +637,9 @@ float HairBcsdf::pdf(const SurfaceScatterEvent &event) const
     float weightTRT = _nTRT->weight(cosThetaI);
     float weightSum = weightR + weightTT + weightTRT;
 
-    float pdfR   = weightR  *M(_vR,   std::sin(thetaIR),   sinThetaO, std::cos(thetaIR),   cosThetaO);
-    float pdfTT  = weightTT *M(_vTT,  std::sin(thetaITT),  sinThetaO, std::cos(thetaITT),  cosThetaO);
-    float pdfTRT = weightTRT*M(_vTRT, std::sin(thetaITRT), sinThetaO, std::cos(thetaITRT), cosThetaO);
+    float pdfR   = weightR  *OurM(_vR,   std::sin(thetaIR),   sinThetaO, std::cos(thetaIR),   cosThetaO);
+    float pdfTT  = weightTT *OurM(_vTT,  std::sin(thetaITT),  sinThetaO, std::cos(thetaITT),  cosThetaO);
+    float pdfTRT = weightTRT*OurM(_vTRT, std::sin(thetaITRT), sinThetaO, std::cos(thetaITRT), cosThetaO);
 
     return (1.0f/weightSum)*
           (pdfR  *  _nR->pdf(phi, cosThetaD)
@@ -853,9 +854,16 @@ float HairBcsdf::u(float x, float v) const {
 }
 
 float HairBcsdf::OurSampleM(float v, float thetaCone, float x1, float x2) const {
-    float theta_prime = PI / 2.0f - thetaCone;
-    float u_x1 = u(x1, v);
-    return u_x1 * cos(theta_prime) + sqrt(1 - pow(u_x1, 2)) * cos(2.0f * PI * x2) * sin(theta_prime);
+    float sinThetaC = sin(thetaCone);
+    float cosThetaC = cos(thetaCone);
+    float cosTheta = v*std::log(std::exp(1.0f/v) - 2.0f*x1*std::sinh(1.0f/v));
+    float sinTheta = trigInverse(cosTheta);
+    float cosPhi = std::cos(TWO_PI*x2);
+
+    return -cosTheta*sinThetaC + sinTheta*cosPhi*cosThetaC;
+    // float theta_prime = PI / 2.0f - thetaCone;
+    // float u_x1 = u(x1, v);
+    // return u_x1 * cos(theta_prime) + sqrt(1 - pow(u_x1, 2)) * cos(2.0f * PI * x2) * sin(theta_prime);
 }
 
 float HairBcsdf::csch (float theta) const {
@@ -863,13 +871,16 @@ float HairBcsdf::csch (float theta) const {
 }
 
 float HairBcsdf::OurM(float v, float sinThetaC, float sinThetaO, float cosThetaC, float cosThetaO) const {
-    float a = csch(1.0f / v) / (2.0f * v);
-    float b = exp(sinThetaC * sinThetaO / v);
-    float c = cosThetaC * cosThetaO / v;
-    float d = 1.0f / cosThetaO;
-    float io = I0(c);
-    return a * b * io * c * d;
+    float a = cosThetaC*cosThetaO/v;
+    float b = sinThetaC*sinThetaO/v;
+    return csch(1.0f / v) * std::exp(-b)*I0(a) / (2.0f*v);
+    // float a = csch(1.0f / v) / (2.0f * v);
+    // float b = std::exp(-sinThetaC * sinThetaO / v);
+    // float c = cosThetaC * cosThetaO / v;
+    // float d = 1.0f / cosThetaO;
+    // float io = I0(c);
+    // return a * b * io * c;
 }
 
-
+//std::exp(-b)*I0(a)/(2.0f*v*std::sinh(1.0f/v));
 }
