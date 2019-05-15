@@ -61,7 +61,7 @@
                 <img src="images/equations/kajiyakayspecular.png" height="150px">
             </div>
             <p>
-                We have t as the tangent vector to the hair cylinder, l as the vector to the light sounce, and e as the vector to the camera. K<sub>s</sub> is the , K<sub>s</sub> is the , and p is .
+                We have t as the tangent vector to the hair cylinder, l as the vector to the light sounce, and e as the vector to the camera. K<sub>d</sub> is the diffuse scalar component, K<sub>s</sub> is the specular scalar component, and p is the exponent to the specular component.
             </p>
 
         <h3>Modified Marschner Model</h3>
@@ -147,11 +147,11 @@
                 </p>
                 <br>
                 <p>
-                    The Modified Marchner model was incredibly difficult to implement for many reasons. The papers we read often had a mathematical explanation for how the reflectance model should work, but nothing about implementation in the context of ray-tracing. We had to find a different paper that talked about how to implement a hair bcsdf with ray-tracing, but it differed in many ways from the Marchner model and related papers. On top of this, a lot of the papers directly contradicted each other in terms of the math, but we couldn’t just rely on one paper because each paper was ambiguous or incomplete in some way. To proceed with our own implementation, we had to piece together components of each of the papers we used and filled in the gaps with equations we derived ourselves.
+                    The Modified Marchner model was incredibly difficult to implement for many reasons. The papers we read often had a mathematical explanation for how the reflectance model should work, but nothing about implementation in the context of ray-tracing. We had to find a different paper that talked about how to implement a hair bcsdf with ray-tracing, but it differed in many ways from the Marchner model and related papers. On top of this, a lot of the papers directly contradicted each other in terms of the math, but we couldn’t just rely on one paper because each paper was ambiguous or incomplete in some way. To proceed with our own implementation, we had to piece together components of each of the papers and filled in the gaps with equations we derived ourselves.
                 </p>
                 <br>
                 <p>
-                    The final struggle for the Modified Marschner model which we were not able to overcome was implementing the final calculation of a sample’s weight. Tungsten oddly represents the weight of a sample as a 3d vector, which didn’t match any papers we read. We reasoned that this vector was some representation of the resulting scaled color of the reflected light. The results of our own implementation of sample weighting were discolored, and it was extremely hard to debug this due to the poor documentation of Tungsten and because none of our reference papers calculated weight the same way as Tungsten required it.
+                    The final struggle for the Modified Marschner model was implementing the final calculation of a sample’s weight. Tungsten represents the weight of a sample differently from the main paper we were following. The results of our own implementation of sample weighting were a lot more noisy with slightly different coloration, and it was extremely hard to debug this due to the poor documentation of Tungsten and because none of our reference papers calculated weight the same way as Tungsten required it.
                 </p>
                 <br>
                 <p>
@@ -199,23 +199,51 @@
             <p>
                 We were unable to correctly calculate the weight of our samples, resulting in discoloration of our final results. However, since Tungstens code was loosely based on the Marschner model, we were able to call Tungsten’s sample weighting function in our code. The following images are with our longitudinal sampling, azimuthal sampling, lobe selection, and longitudinal weighting.
             </p>
+            <div align="center">
+                <table style="width=100%">
+                    <tr>
+                        <td align="middle">
+                            <img src="images/renders/furball2.png" height="600px" />
+                        <td>
+                    </tr>
+                    <tr>
+                        <td align="middle">
+                            <img src="images/renders/curly-hair.png" height="600px" />
+                        <td>
+                    </tr>
+                    <tr>
+                        <td align="middle">
+                            <img src="images/renders/straight-hair.png" height="600px" />
+                        <td>
+                    </tr>
+                    <tr>
+                        <td align="middle">
+                            <img src="images/renders/hair-curl.png" height="600px" />
+                        <td>
+                    </tr>
+                </table>
+            </div>
             <p>
-                The following images are our complete Marchner implementation with the defective sample weighting.
+                The following images our own sample weighting. These images were rendered using entirely our own BCSDF code. The colors are more vivid than the previous ones, but there's a lot more noise in the final images (red dots).
             </p>
             <div align="center">
                 <table style="width=100%">
                     <tr>
                         <td align="middle">
-                            <img src="images/just_diffuse_ugly.png" height="600px" />
-                            <figcaption align="middle">With only the “diffuse” component</figcaption>
+                            <img src="images/renders/curly-hair-weight.png" height="600px" />
+                            <figcaption align="middle">The color and shadows look good, but there are lots of random red dots.</figcaption>
                         <td>
+                    </tr>
+                    <tr>
                         <td align="middle">
-                            <img src="images/specular_ugly.png" height="600px" />
-                            <figcaption align="middle">All together with the specular component</figcaption>
+                            <img src="images/renders/straight-hair-with-weight.png" height="600px" />
+                            <figcaption align="middle">This one looks pretty good too, with slight noise.</figcaption>
                         <td>
+                    </tr>
+                    <tr>
                         <td align="middle">
-                            <img src="images/Tungsten_hair.png" height="600px" />
-                            <figcaption align="middle">Ideally, we would have something that looks like this</figcaption>
+                            <img src="images/renders/furball.png" height="600px" />
+                            <figcaption align="middle">This one shows the most noise by far.</figcaption>
                         <td>
                     </tr>
                 </table>
